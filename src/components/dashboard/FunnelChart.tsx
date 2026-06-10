@@ -82,10 +82,10 @@ export function FunnelChart() {
                             color: '#fff',
                         }}
                         labelStyle={{ color: '#fff' }}
-                        formatter={(value: number, name: string, props: any) => {
-                            const percentage = props.payload.percentage;
+                        formatter={(value: any, name: any, props: any) => {
+                            const percentage = props?.payload?.percentage ?? 0;
                             return [
-                                `${value} accounts${percentage > 0 ? ` (${percentage}% conversion)` : ''}`,
+                                `${value ?? 0} accounts${percentage > 0 ? ` (${percentage}% conversion)` : ''}`,
                                 'Count'
                             ];
                         }}

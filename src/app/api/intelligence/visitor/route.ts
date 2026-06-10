@@ -182,30 +182,7 @@ async function logUnmatchedVisitor(
     reason: string
 ) {
     try {
-        // Create activity log for unmatched visitors
-        // This could be a separate table or use the Activity table
-        await prisma.activity.create({
-            data: {
-                accountId: null,
-                contactId: null,
-                type: 'note',
-                subject: `Unmatched Visitor: ${ipinfo.org || 'Unknown'}`,
-                notes: JSON.stringify({
-                    ip: maskIP(payload.ip),
-                    page: payload.page,
-                    userAgent: payload.userAgent,
-                    ipinfo: {
-                        org: ipinfo.org,
-                        city: ipinfo.city,
-                        country: ipinfo.country,
-                    },
-                    reason,
-                    timestamp: payload.timestamp,
-                }),
-            },
-        });
-
-        console.log(`📝 Logged unmatched visitor: ${ipinfo.org || 'Unknown'}`);
+        console.log(`📝 Unmatched visitor: ${ipinfo.org || 'Unknown'} (Reason: ${reason}, IP: ${payload.ip}, Page: ${payload.page})`);
     } catch (error) {
         console.error('Error logging unmatched visitor:', error);
     }

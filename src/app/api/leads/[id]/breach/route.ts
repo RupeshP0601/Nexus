@@ -29,10 +29,10 @@ export async function POST(
         await prisma.activity.create({
             data: {
                 accountId: lead.accountId,
-                contactId: lead.contactId,
-                type: 'note',
+                type: 'email',
                 subject: `SLA BREACH: Lead ${leadId}`,
-                notes: `SLA deadline breached at ${new Date().toISOString()}. Original deadline: ${lead.slaDeadline.toISOString()}`,
+                description: `SLA deadline breached at ${new Date().toISOString()}. Original deadline: ${lead.slaDeadline ? lead.slaDeadline.toISOString() : 'N/A'}`,
+                performedBy: 'System',
             },
         });
 

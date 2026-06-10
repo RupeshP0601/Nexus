@@ -1,0 +1,203 @@
+// Afors Nexus - Revenue Orchestration Platform
+// Prisma Schema for Afors Nexus
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Core Account Model - Represents B2B companies in BFSI/Telecom sectors
+model Account {
+  id                 String         @id @default(cuid())
+  name               String
+  domain             String         @unique
+  industry           String         // 'BFSI' | 'Telecom'
+  country            String         // 'UAE' | 'KSA' | 'Qatar' | 'Bahrain' | 'Oman' | 'Kuwait'
+  revenue            Float?
+  tier               Int            // 1=Strategic, 2=Scale, 3=Programmatic
+  fitScore           Int            @default(0)  // 0-100
+  intentScore        Int            @default(0)  // 0-100
+  engagementScore    Int            @default(0)  // 0-100
+  buyingStageScore   Int            @default(0)  // 0-100
+  totalScore         Int            @default(0)  // Combined score
+  status             String         @default("nurture") // 'nurture'|'mql'|'sql'|'opportunity'
+  isSurging          Boolean        @default(false)
+  contacts           Contact[]
+  stakeholders       Stakeholder[]
+  signals            Signal[]
+  activities         Activity[]
+  leads              Lead[]
+  dossier            Dossier?
+  draftMessages      DraftMessage[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([totalScore])
+  @@index([status])
+  @@index([industry])
+  @@index([country])
+}
+
+// Contact Model - Key decision makers at accounts
+model Contact {
+  id         String   @id @default(cuid())
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name       String
+  title      String?  @default("")
+  email      String?
+  phone      String?
+  linkedin   String?
+  linkedinUrl String?
+  isPrimary  Boolean  @default(false)
+  fitPoints  Int      @default(0)  // Points this contact adds to account score
+  draftMessages DraftMessage[]
+  leads      Lead[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([isPrimary])
+}
+
+// Signal Model - Intent and behavioral signals
+model Signal {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        String   // 'intent'|'firmographic'|'contextual'|'website_visit'
+  description String
+  points      Int      @default(0)
+  source      String   // '6sense'|'news_api'|'website'|'manual'
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Activity Model - Sales activities and touchpoints
+model Activity {
+  id          String   @id @default(cuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        String   // 'email'|'call'|'meeting'|'demo'|'proposal'
+  subject     String
+  description String?
+  performedBy String   // User ID or name
+  performedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([accountId])
+  @@index([performedAt])
+}
+
+// Lead Model - Sales qualified leads with SLA tracking
+model Lead {
+  id              String    @id @default(cuid())
+  accountId       String
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  source          String    // 'inbound'|'outbound'|'website'|etc.
+  score           Int?      @default(0)
+  status          String    @default("new") // 'new'|'accepted'|'rejected'|'converted'
+  sqlTriggeredAt  DateTime?
+  acceptedAt      DateTime?
+  assignedTo      String?
+  slaDeadline     DateTime?
+  slaBreach       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([accountId])
+  @@index([status])
+  @@index([assignedTo])
+  @@index([slaBreach])
+  @@index([slaDeadline])
+}
+
+// TriggerEvent Model - Market events and news triggers
+model TriggerEvent {
+  id          String   @id @default(cuid())
+  headline    String
+  category    String   // 'regulatory'|'tender'|'funding'|'executive_change'
+  sector      String   // 'BFSI'|'Telecom'|'General'
+  country     String?
+  source      String
+  url         String?
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+  @@index([sector])
+  @@index([publishedAt])
+}
+
+// Dossier Model - AI-generated account research and insights
+model Dossier {
+  id                  String   @id @default(cuid())
+  accountId           String   @unique
+  account             Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  overview            String   // 2-3 sentence company overview
+  businessChallenges  Json?    // Inferred business challenges
+  growthInitiatives   Json?    // Growth initiatives
+  technologyLandscape Json?    // Tech landscape
+  painPoints          Json     // Array of inferred pain points
+  competitiveRisks    Json?    // Competitive risks
+  solutionPositioning String?  // Recommended positioning
+  stakeholderMapping  Json?    // Stakeholder mapping matrix
+  nextBestActions     Json?    // Next best actions recommendations
+  valueProposition    String   // How Afors can help
+  messageAngle        String   // Recommended first message hook
+  targetStakeholder   String   // Key stakeholder to target
+  isStale             Boolean  @default(false) // Mark as stale if account data changes significantly
+  generatedAt         DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([isStale])
+}
+
+// Stakeholder Model - Represents key contacts forming the buying committee
+model Stakeholder {
+  id        String   @id @default(cuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  title     String
+  email     String
+  role      String   // Champion, DecisionMaker, Influencer, TechnicalEvaluator, Procurement
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+}
+
+// DraftMessage Model - AI-generated outreach messages
+model DraftMessage {
+  id            String    @id @default(cuid())
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  channel       String    // 'email' | 'linkedin'
+  subjectLine   String?   // For emails only
+  body          String    // Generated message body
+  editedBody    String?   // User-edited version
+  status        String    @default("draft") // 'draft' | 'sent' | 'discarded'
+  stepNumber    Int?      // Step in the multi-step outreach sequence
+  stepName      String?   // Name of the sequence step
+  sentAt        DateTime?
+  generatedAt   DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([accountId])
+  @@index([contactId])
+  @@index([status])
+  @@index([channel])
+}
