@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const accountId = params.id;
+        const { id: accountId } = await params;
 
         // Get account
         const account = await prisma.account.findUnique({

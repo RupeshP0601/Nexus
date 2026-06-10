@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const leadId = params.id;
+        const { id: leadId } = await params;
 
         // Get lead
         const lead = await prisma.lead.findUnique({
